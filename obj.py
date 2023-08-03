@@ -5,7 +5,7 @@ class Obj(object):
 
         self.vertices = []
         self.texcoords = []
-        self.normals = []
+        self.normal = []
         self.faces = []
 
         for line in self.lines:
@@ -21,7 +21,7 @@ class Obj(object):
                 # print(value.split(" "))
                 self.texcoords.append(list(map(float, value.split(" "))) )
             if prefix == "vn": #normals
-                self.normals.append(list(map(float, value.split(" "))) )
+                self.normal.append(list(map(float, value.split(" "))) )
             if prefix == "f": #normals
                 values = value.rstrip().split(" ")
                 self.faces.append([list(map(int, vert.split("/"))) for vert in values])

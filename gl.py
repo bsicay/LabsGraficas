@@ -1,13 +1,14 @@
 import struct
 from collections import namedtuple
 from obj import Obj
-import math
 from mathLB import mathLib
+import math
 from texture import Texture
+
+la = mathLib()
 
 V2 = namedtuple('Point2', ['x', 'y'])
 V3 = namedtuple('Point2', ['x', 'y', 'z'])
-la = mathLib()
 
 POINTS = 0
 LINES = 1
@@ -31,21 +32,19 @@ def color(r,g,b):
 
 class Model(object):
     def __init__(self, filename, translate = (0,0,0), rotate = (0,0,0), scale = (1,1,1)):
-        model = Obj(filename)
+        model = (Obj(filename))
 
         self.vertices = model.vertices
         self.texcoords = model.texcoords
-        self.normals = model.normals
-        self.faces = model.faces 
-        
+        self.normal = model.normal
+        self.faces = model.faces
+
         self.translate = translate
         self.rotate = rotate
         self.scale = scale
-
+    
     def LoadTexture(self, textureName):
         self.texture = Texture(textureName)
-        
-        
 
 class Renderer(object):
     def __init__(self,width,height):
@@ -55,7 +54,7 @@ class Renderer(object):
         self.glClearColor(0,0,0)
         self.glClear()
 
-        self.glColor(1,1,1)
+        self.glColor(0,0,0)
 
         self.objects = []
 
@@ -98,9 +97,13 @@ class Renderer(object):
     def glClear(self):
         self.pixels = [[self.clearColor for y in range(self.height)] for x in range(self.width)]
 
+        self.zbuffer = [[(float)('inf') for y in range(self.height)] for x in range(self.width)]
+
     def glPoint(self,x,y,clr=None):
         if 0<=x<self.width and 0<=y<self.height:
             self.pixels[x][y] = clr or self.currColor
+
+        
 
     def glTriangle(self, v0, v1, v2, clr = None):
         self.glLine(v0, v1, clr or self.currColor)
@@ -122,7 +125,7 @@ class Renderer(object):
                 P = (x,y)
                 
                 try :
-                    u,v,w = libreria.barycentricCoords(A,B,C,P)
+                    u,v,w = mathLib.barycentric_coords(A,B,C,P)
                     if 0<=u<=1 and 0<=v<=1 and 0<=w<=1: 
 
                         z = u * A[2] + v * B[2] + w * C[2]
@@ -131,8 +134,8 @@ class Renderer(object):
                             self.zbuffer[x][y] = z
 
                             uvs = (u * vtA[0] + v * vtB[0] + w * vtC[0],
-                                   u * vtA[1] + v * vtB[1] + w * vtC[1],
-                                   u * vtA[2] + v * vtB[2] + w * vtC[2])
+                                   u * vtA[1] + v * vtB[1] + w * vtC[1]
+                                  )
 
                             if self.fragmentShader != None:
                                 colorP = self.fragmentShader(textCoords = uvs, 
@@ -142,6 +145,8 @@ class Renderer(object):
                                 self.glPoint(x, y, colorP)
                 except:
                     pass
+
+
 
     def glModelMatrix(self, translate = (0,0,0), scale =(1,1,1), rotate=(0,0,0)):
         translation = [[1,0,0,translate[0]],
@@ -154,20 +159,24 @@ class Renderer(object):
                                 [0,0,scale[2],0],
                                 [0,0,0,1]]
         
+        pitch = rotate[0] * math.pi/180
+        yaw = rotate[1] * math.pi/180
+        roll = rotate[2] * math.pi/180
+        
         rx = [[1,0,0,0],
-                                [0,math.cos(rotate[0]),-math.sin(rotate[0]),0],
-                                [0,math.sin(rotate[0]),math.cos(rotate[0]),0],
-                                [0,0,0,1]]
+            [0,math.cos(pitch),-math.sin(pitch),0 ],
+            [0, math.sin(pitch), math.cos(pitch),0],
+            [0,0,0,1]]
         
-        ry = [[math.cos(rotate[1]),0,math.sin(rotate[1]),0],
-                                [0,1, 0,0],
-                                [-math.sin(rotate[1]),0,math.cos(rotate[1]),0],
-                                [0,0,0,1]]
+        ry =[[math.cos(yaw),0,math.sin(yaw),0],
+            [0,1,0,0],
+            [-math.sin(yaw),0,math.cos(yaw),0],
+            [0,0,0,1]]
         
-        rz = [[math.cos(rotate[2]),-math.sin(rotate[2]),0,0],
-                                [math.sin(rotate[2]),math.cos(rotate[2]), 0,0],
-                                [0,0,1,0],
-                                [0,0,0,1]]
+        rz =[[math.cos(roll),-math.sin(roll),0,0],
+            [math.sin(roll),math.cos(roll),0,0],
+            [0,0,1,0],
+            [0,0,0,1]]
         
         mr = la.multiply_matrices(rx, ry, rz)
 
@@ -177,20 +186,11 @@ class Renderer(object):
         return la.multiply_matrices(translation, mr, scaleMat)
     
     def glLine(self, v0, v1, clr = None):
-        #Bresenham line algorithm
-        # y = mx + b
-        # m = (v1.y - v0.y)/(v1.x - v0.x)
-        # y = v0.y
-
-        # for x in range(v0.x, v1.x + 1):
-        #     self.glPoint(x,int(y))
-        #     y += m
         x0 = int(v0[0])
         x1 = int(v1[0])
         y0 = int(v0[1])
         y1 = int(v1[1])
 
-        # Si el punto 0 es igual al punto 1, solo dibujar un punto
         if x0 == x1 and y0 == y1:
             self.glPoint(x0,y0)
             return
@@ -200,16 +200,10 @@ class Renderer(object):
 
         steep = dy > dx
 
-        # Si la linea tiene pendiente mayor a 1 o menor a -1 
-        # intercambiamos las x por las y, y se dibuja la linea
-        # de manera vertical en vez de horizontal 
         if steep: 
             x0, y0 = y0, x0
             x1, y1 = y1, x1
         
-        # Si el punto inicial en x es mayor que el punto final en x, 
-        # intercambiamos los puntos para siempre dibujar de 
-        # izquierda a derecha
         if x0 > x1:
             x0, x1 = x1, x0
             y0, y1 = y1, y0
@@ -224,10 +218,8 @@ class Renderer(object):
 
         for x in range(x0, x1 + 1): 
             if steep:
-                # dibujar de manera vertical
                 self.glPoint(y, x, clr or self.currColor)
             else:
-                # Dibujar de manera horizontal
                 self.glPoint(x, y, clr or self.currColor)
 
             offset += m
@@ -239,74 +231,13 @@ class Renderer(object):
                     y -= 1
                 limit += 1
 
-    # edge_table toma una lista de vértices de un polígono y genera una tabla de bordes Edge Table.
-    # La tabla almacena  los bordes del polígono y se utiliza en el algoritmo de Scanline para 
-    # rellenar el polígono.
-
     def glLoadModel(self, filename, textureName, translate = (0,0,0),rotate = (0,0,0), scale = (1,1,1)):
         model = Model(filename, translate, rotate, scale)
         model.LoadTexture(textureName)
         
         self.objects.append(model)
 
-    def edge_table(self, vertices):
-        et = {}
-        for i in range(len(vertices)):
-            x1, y1 = vertices[i]
-            x2, y2 = vertices[(i+1)%len(vertices)]
-
-            if y1 > y2:
-                x1, x2 = x2, x1
-                y1, y2 = y2, y1
-
-            if y1 == y2:
-                continue
-
-            if y1 not in et:
-                et[y1] = []
-
-            et[y1].append((y2, x1, (x2-x1)/(y2-y1)))
-
-        return et
-
-    # scanLine Toma una lista de vértices de un polígono 
-    # y un color para rellenar.
-    def scanline(self, vertices, r,g,b):
-        # obtiene los bordes
-        et = self.edge_table(vertices)
-        ael = []
-        self.glColor(r,g,b)
-        # Itera sobre cada línea de barrido desde la mínima hasta la máxima línea de barrido
-        for scanline in range(min(et), max(et)+1):
-        # Si la línea de barrido actual está en la tabla de bordes,
-        # añade todos los bordes que comienzan en esta línea a la lista de bordes activos
-            if scanline in et:
-                ael.extend(et[scanline])
-            # Elimina de la lista de bordes activos cualquier borde que ya no cruce la línea de barrido
-            ael = [i for i in ael if i[0] > scanline]
-
-            ael.sort(key=lambda x: x[1])
-            # Para cada par de bordes en la lista de bordes activos, 
-            # rellena todos los píxeles entre ellos en la línea de barrido actual
-            for i in range(0, len(ael), 2):
-                for x in range(int(ael[i][1]), int(ael[i+1][1])):
-                    self.glPoint(x, scanline, self.currColor)  # aqui es donde se dibuja el punto
-
-            # Para cada borde en la lista de bordes activos, actualiza la coordenada x para la próxima línea de barrido
-             # sumando la pendiente de la línea
-            for i in range(len(ael)):
-                y2, x, m = ael[i]
-                ael[i] = (y2, x+m, m)
-
-    # funcion para dibujar todo el contorno del poligono
-    def glPolygon(self, vertices, clr=None):
-        vertex_count = len(vertices)
         
-        for i in range(vertex_count):
-            v0 = vertices[i]
-            v1 = vertices[(i + 1) % vertex_count]
-            self.glLine(v0, v1, clr)
-
 
     def glRender(self):
         transformedVerts = []
@@ -389,4 +320,3 @@ class Renderer(object):
             for y in range(self.height):
                 for x in range(self.width):
                     file.write(self.pixels[x][y])
-
