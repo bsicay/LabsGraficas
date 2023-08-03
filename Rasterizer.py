@@ -20,7 +20,7 @@ rend.glLoadModel(filename= "head.obj", textureName="a.bmp",
                 translate=(400,900,0), scale=(5,5,5), rotate=(-90,0,180))
 
 rend.glLoadModel(filename= "head.obj", textureName="a.bmp",
-                translate=(1500,900,0), scale=(5,5,5), rotate=(0,0,45))
+                translate=(1500,900,0), scale=(5,5,5), rotate=(-45,0,45))
 
 
 rend.glRender()
