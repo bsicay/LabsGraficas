@@ -10,7 +10,7 @@ renderer.vertexShader = shaders.vertexShader
 renderer.fragmentShader = shaders.fragmentShader
 renderer.glLookAt(camPos=(0.9, 1, 0), eyePos=(0, 0, -5))
 renderer.gl_load_model(
-    filename="models/head.obj",
+    filename="models/wooden.obj",
     textureName="models/textures/wood.bmp",
     translate=(0, -1, -5),
     rotate=(0, 75, 0),
