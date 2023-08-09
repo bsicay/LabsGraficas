@@ -61,7 +61,7 @@ renderer.gl_load_model(
     filename="models/wooden.obj",
     textureName="models/textures/wood.bmp",
     translate=(0, 0, -5),
-    rotate=(0, 75, 0),
+    rotate=(0, 75, -15),
     scale=(2, 2, 2)
 )
 renderer.glRender()
