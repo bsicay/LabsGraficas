@@ -20,55 +20,49 @@ renderer.glRender()
 renderer.glFinish("out/mediumShot.bmp")
 
 
-# # low angle
-# renderer = Renderer(width, height)
-# renderer.set_clear_color(63/255,64/255,53/255)
-# renderer.clear()
-# renderer.vertex_shader = shaders.vertex_shader
-# renderer.fragment_shader = shaders.fragment_shader
-# renderer.look_at(cam_pos=(0, -3, 0), eye_pos=(0, 0, -5), rotateZ=0)
-# renderer.gl_load_model(
-#     filename=f"{models_dir}/wooden.obj",
-#     texture_name=f"{textures_dir}/wood.bmp",
-#     translate=(0, 0, -5),
-#     rotate=(0, 75, 0),
-#     scale=(2, 2, 2)
-# )
-# renderer.gl_render()
-# renderer.gl_finish(f"{out_dir}/low_angle.bmp")
+# low angle
+renderer = Renderer(width, height)
+renderer.vertexShader = shaders.vertexShader
+renderer.fragmentShader = shaders.fragmentShader
+renderer.glLookAt(camPos=(0, -3, 0), eyePos=(0, 0, -5))
+renderer.gl_load_model(
+    filename="models/wooden.obj",
+    textureName="models/textures/wood.bmp",
+    translate=(0, 0, -5),
+    rotate=(0, 75, 0),
+    scale=(2, 2, 2)
+)
+renderer.glRender()
+renderer.glFinish("out/lowAngle.bmp")
 
 
-# # high angle
-# renderer = Renderer(width, height)
-# renderer.set_clear_color(63/255,64/255,53/255)
-# renderer.clear()
-# renderer.vertex_shader = shaders.vertex_shader
-# renderer.fragment_shader = shaders.fragment_shader
-# renderer.look_at(cam_pos=(0, 5, 0), eye_pos=(0, 0, -5), rotateZ=0)
-# renderer.gl_load_model(
-#     filename=f"{models_dir}/wooden.obj",
-#     texture_name=f"{textures_dir}/wood.bmp",
-#     translate=(0, 0, -5),
-#     rotate=(0, 75, 0),
-#     scale=(2, 2, 2)
-# )
-# renderer.gl_render()
-# renderer.gl_finish(f"{out_dir}/high_angle.bmp")
+# high angle
+renderer = Renderer(width, height)
+renderer.vertexShader = shaders.vertexShader
+renderer.fragmentShader = shaders.fragmentShader
+renderer.glLookAt(camPos=(0, 5, 0), eyePos=(0, 0, -5))
+renderer.gl_load_model(
+    filename="models/wooden.obj",
+    textureName="models/textures/wood.bmp",
+    translate=(0, 0, -5),
+    rotate=(0, 75, 0),
+    scale=(2, 2, 2)
+)
+renderer.glRender()
+renderer.glFinish("out/hightAngle.bmp")
 
 
-# # dutch angle
-# renderer = Renderer(width, height)
-# renderer.set_clear_color(63/255,64/255,53/255)
-# renderer.clear()
-# renderer.vertex_shader = shaders.vertex_shader
-# renderer.fragment_shader = shaders.fragment_shader
-# renderer.look_at(cam_pos=(1, 2.3, 0), eye_pos=(0, 0, -5), rotateZ=-15)
-# renderer.gl_load_model(
-#     filename=f"{models_dir}/wooden.obj",
-#     texture_name=f"{textures_dir}/wood.bmp",
-#     translate=(0, 0, -5),
-#     rotate=(0, 75, 0),
-#     scale=(2, 2, 2)
-# )
-# renderer.gl_render()
-# renderer.gl_finish(f"{out_dir}/dutch_angle.bmp")
+# dutch angle
+renderer = Renderer(width, height)
+renderer.vertexShader = shaders.vertexShader
+renderer.fragmentShader = shaders.fragmentShader
+renderer.glLookAt(camPos=(1, 2.3, 0), eyePos=(0, 0, -5))
+renderer.gl_load_model(
+    filename="models/wooden.obj",
+    textureName="models/textures/wood.bmp",
+    translate=(0, 0, -5),
+    rotate=(0, 75, 0),
+    scale=(2, 2, 2)
+)
+renderer.glRender()
+renderer.glFinish("out/dutchAngle.bmp")
