@@ -27,8 +27,8 @@ def vertexShader(vertex, **kwargs):
 #     return color
 
 
-# dottedShader: 
-def fragmentShader(**kwargs):
+# carttonShader: 
+def cartoonShader(**kwargs):
     tex_coords = kwargs["tex_coords"]
     texture = kwargs["texture"]
 
@@ -36,13 +36,11 @@ def fragmentShader(**kwargs):
     space_size = 0.01  # Determina el espacio entre los puntos
 
     # Calcula si estamos en un punto o en un espacio
-    if (tex_coords[0] % (dot_size + space_size) < dot_size) and (tex_coords[1] % (dot_size + space_size) < dot_size):
-        # Estamos en un punto
-        if texture is not None:
-            color = texture.get_color(tex_coords[0], tex_coords[1])
-        else:
-            color = (0, 0, 0)  # Color del punto si no hay textura
+    # print(tex_coords[0][0])
+    # print('a')
+    # print(tex_coords[0][1])
+    if texture is not None:
+        color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
     else:
-        color = (63/255,64/255,53/255)  # Color del espacio entre puntos
-
+        color = (1, 1, 1)  # Color del punto si no hay textura
     return color

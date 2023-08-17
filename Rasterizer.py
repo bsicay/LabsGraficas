@@ -7,7 +7,7 @@ height = 800
 # medium shot
 renderer = Renderer(width, height)
 renderer.vertexShader = shaders.vertexShader
-renderer.fragmentShader = shaders.fragmentShader
+renderer.cartoonShader = shaders.cartoonShader
 renderer.glLookAt(camPos=(0.9, 1, 0), eyePos=(0, 0, -5))
 renderer.gl_load_model(
     filename="models/wooden.obj",
@@ -17,7 +17,7 @@ renderer.gl_load_model(
     scale=(1, 1, 1)
 )
 renderer.glRender()
-renderer.glFinish("out/mediumShot.bmp")
+renderer.glFinish("out/CartoonShader.bmp")
 
 
 # # low angle

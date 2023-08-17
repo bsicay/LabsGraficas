@@ -6,7 +6,6 @@ class Texture:
         with open(filename, "rb") as image:
             image.seek(10)
             headerSize = struct.unpack('=l', image.read(4))[0]
-
             image.seek(18)
             self.width = struct.unpack('=l', image.read(4))[0]
             self.height = struct.unpack('=l', image.read(4))[0]
@@ -25,6 +24,8 @@ class Texture:
                 self.pixels.append(pixelRow)
                 
     def get_color(self, u, v):
+        # print(u)
+        # print(v)
         if 0 <= u < 1 and 0 <= v < 1:
             x = int(u * self.width)
             y = int(v * self.height)
