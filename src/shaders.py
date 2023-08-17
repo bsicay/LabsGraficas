@@ -1,5 +1,5 @@
 from .mathLB import formatVector
-
+import math
 
 def vertexShader(vertex, **kwargs):
     model_matrix = kwargs["model_matrix"]
@@ -15,32 +15,56 @@ def vertexShader(vertex, **kwargs):
     return vt.data[:3]
 
 
-# def fragmentShader(**kwargs):
-#     tex_coords = kwargs["tex_coords"]
-#     texture = kwargs["texture"]
+def fragmentShader(**kwargs):
+    tex_coords = kwargs["tex_coords"]
+    texture = kwargs["texture"]
 
-#     if texture is not None:
-#         color = texture.get_color(tex_coords[0], tex_coords[1])
-#     else:
-#         color = (1, 1, 1)
+    if texture is not None:
+        color = texture.get_color(tex_coords[0], tex_coords[1])
+    else:
+        color = (1, 1, 1)
 
-#     return color
+    return color
 
 
 # carttonShader: 
+# def cartoonShader(**kwargs):
+#     tex_coords = kwargs["tex_coords"]
+#     texture = kwargs["texture"]
+
+#     dot_size = 0.05  # Determina el tamaño de los puntos
+#     space_size = 0.01  # Determina el espacio entre los puntos
+
+#     # Calcula si estamos en un punto o en un espacio
+#     # print(tex_coords[0][0])
+#     # print('a')
+#     # print(tex_coords[0][1])
+#     if texture is not None:
+#         color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+#     else:
+#         color = (1, 1, 1)  # Color del punto si no hay textura
+#     return color
+
+
+def wrinkledNoise(u, v):
+    frequency = 20  # que tan "apretadas" son las arrugas.
+    amplitude = 30.5  # cuan "profundas" son las arrugas.
+
+    value = math.sin(u * frequency) + math.sin(v * amplitude)
+
+    return (value + 1) * 0.5  # Esto nos da un valor entre 0 y 1.
+
+
 def cartoonShader(**kwargs):
     tex_coords = kwargs["tex_coords"]
     texture = kwargs["texture"]
 
-    dot_size = 0.05  # Determina el tamaño de los puntos
-    space_size = 0.01  # Determina el espacio entre los puntos
+    noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
 
-    # Calcula si estamos en un punto o en un espacio
-    # print(tex_coords[0][0])
-    # print('a')
-    # print(tex_coords[0][1])
     if texture is not None:
-        color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+        original_color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+        color = tuple(value * noise for value in original_color)
     else:
-        color = (1, 1, 1)  # Color del punto si no hay textura
+        color = (1 * noise, 1 * noise, 1 * noise)
+
     return color

@@ -17,7 +17,7 @@ renderer.gl_load_model(
     scale=(1, 1, 1)
 )
 renderer.glRender()
-renderer.glFinish("out/CartoonShader.bmp")
+renderer.glFinish("out/wrinkledNoise.bmp")
 
 
 # # low angle
