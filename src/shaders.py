@@ -28,22 +28,22 @@ def fragmentShader(**kwargs):
 
 
 # carttonShader: 
-# def cartoonShader(**kwargs):
-#     tex_coords = kwargs["tex_coords"]
-#     texture = kwargs["texture"]
+def cartoonShader(**kwargs):
+    tex_coords = kwargs["tex_coords"]
+    texture = kwargs["texture"]
 
-#     dot_size = 0.05  # Determina el tamaño de los puntos
-#     space_size = 0.01  # Determina el espacio entre los puntos
+    dot_size = 0.05  # Determina el tamaño de los puntos
+    space_size = 0.01  # Determina el espacio entre los puntos
 
-#     # Calcula si estamos en un punto o en un espacio
-#     # print(tex_coords[0][0])
-#     # print('a')
-#     # print(tex_coords[0][1])
-#     if texture is not None:
-#         color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
-#     else:
-#         color = (1, 1, 1)  # Color del punto si no hay textura
-#     return color
+    # Calcula si estamos en un punto o en un espacio
+    # print(tex_coords[0][0])
+    # print('a')
+    # print(tex_coords[0][1])
+    if texture is not None:
+        color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+    else:
+        color = (1, 1, 1)  # Color del punto si no hay textura
+    return color
 
 
 def wrinkledNoise(u, v):
@@ -55,16 +55,16 @@ def wrinkledNoise(u, v):
     return (value + 1) * 0.5  # Esto nos da un valor entre 0 y 1.
 
 
-def cartoonShader(**kwargs):
-    tex_coords = kwargs["tex_coords"]
-    texture = kwargs["texture"]
+# def wrinkledNoiseShader(**kwargs):
+#     tex_coords = kwargs["tex_coords"]
+#     texture = kwargs["texture"]
 
-    noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
+#     noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
 
-    if texture is not None:
-        original_color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
-        color = tuple(value * noise for value in original_color)
-    else:
-        color = (1 * noise, 1 * noise, 1 * noise)
+#     if texture is not None:
+#         original_color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+#         color = tuple(value * noise for value in original_color)
+#     else:
+#         color = (1 * noise, 1 * noise, 1 * noise)
 
-    return color
+#     return color
