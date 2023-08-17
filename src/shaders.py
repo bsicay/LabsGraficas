@@ -55,16 +55,31 @@ def wrinkledNoise(u, v):
     return (value + 1) * 0.5  # Esto nos da un valor entre 0 y 1.
 
 
-# def wrinkledNoiseShader(**kwargs):
-#     tex_coords = kwargs["tex_coords"]
-#     texture = kwargs["texture"]
+def wrinkledNoiseShader(**kwargs):
+    tex_coords = kwargs["tex_coords"]
+    texture = kwargs["texture"]
 
-#     noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
+    noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
 
-#     if texture is not None:
-#         original_color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
-#         color = tuple(value * noise for value in original_color)
-#     else:
-#         color = (1 * noise, 1 * noise, 1 * noise)
+    if texture is not None:
+        original_color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
+        color = tuple(value * noise for value in original_color)
+    else:
+        color = (1 * noise, 1 * noise, 1 * noise)
 
-#     return color
+    return color
+
+def gradientShader(**kwargs):
+    tex_coords = kwargs["tex_coords"]
+
+    # Definimos dos colores para el degradado: inicio y final.
+    start_color = (1, 0, 0)  # Rojo en la parte superior
+    end_color = (0, 0, 1)    # Azul en la parte inferior
+
+    # Interpolamos entre los dos colores basados en la coordenada 'v' 
+    # de las coordenadas de textura (esto asume un rango de 0 a 1 para 'v').
+    r = start_color[0] * (1 - tex_coords[0][1]) + end_color[0] * tex_coords[0][1]
+    g = start_color[1] * (1 - tex_coords[0][1]) + end_color[1] * tex_coords[0][1]
+    b = start_color[2] * (1 - tex_coords[0][1]) + end_color[2] * tex_coords[0][1]
+
+    return (r, g, b)

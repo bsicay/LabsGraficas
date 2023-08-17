@@ -11,3 +11,6 @@
 
 ### wrinkledNoise Shader
 ![third](https://cdn.discordapp.com/attachments/717418780065529856/1141768381264040038/image.png)
+
+### Gradient Shader
+![third](https://cdn.discordapp.com/attachments/717418780065529856/1141770759149191218/image.png)
