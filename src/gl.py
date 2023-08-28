@@ -7,38 +7,44 @@ from .texture import Texture
 
 
 TRIANGLES = 2
-
-class Model:
-    def __init__(self, filename, translate=(0, 0, 0), rotate=(0, 0, 0), scale=(1, 1, 1)):
-        model = Obj(filename)
-
-        self.vertices = model.vertices
-        self.texcoords = model.texcoords
-        self.normals = model.normals
-        self.faces = model.faces
-
-        self.translate = translate
-        self.rotate = rotate
-        self.scale = scale
-        
-    def LoadTexture(self, textureName):
-        self.texture = Texture(textureName)
-
+    
 class Renderer:
     def __init__(self, width, height):
         self.width = width
         self.height = height
         self.currColor = color(1, 1, 1)
         self.objects = []
-        self.vertexShader = None
+        self.fragment_shader = None
+        self.vertex_shader = None
         self.cartoonShader = None
         self.primitiveType = TRIANGLES
         self.activeTexture = None
+        self.activeNormalMap = None
         self.glViewport(0, 0, width, height)
         self.glCamMatrix()
         self.glProjectionMatrix()
         self.glClearColor(63/255,64/255,53/255)
         self.glClear()
+        self.background = None
+        self.directionalLight = formatVector([0, 0, 0])
+    
+    def setDirectionalLight(self, x, y, z):
+        self.directional_light = formatVector([x, y, z])
+
+    def glBackgroundTexture(self, filename):
+        self.background = Texture(filename)
+
+    def glClearBackground(self):
+        self.glClear()
+        if self.background:
+            for x in range(self.vpX, self.vpX + self.vpWidth + 1):
+                for y in range(self.vpY, self.vpY + self.vpHeight + 1):
+                    u = (x - self.vpX) / self.vpWidth
+                    v = (y - self.vpY) / self.vpHeight
+                    texture_color = self.background.get_color(u, v)
+                    if texture_color:
+                        self.glPoint(x, y, color(
+                            texture_color[0], texture_color[1], texture_color[2]))
 
     def glClear(self):
         self.pixels = [[self.clearColor for _ in range(self.height)]
@@ -55,69 +61,97 @@ class Renderer:
     def glPoint(self, x: int, y: int, clr=None):
         if 0 <= x < self.width and 0 <= y < self.height:
             self.pixels[x][y] = clr or self.curr_color
+    
+    def add_model(self, model):
+        self.objects.append(model)
 
-    def glTriangle(self, verts, textCoords, normals):
-        A = verts[0]
-        B = verts[1]
-        C = verts[2]
-        minX = round(min(A[0], B[0], C[0]))
-        maxX = round(max(A[0], B[0], C[0]))
-        minY = round(min(A[1], B[1], C[1]))
-        maxY = round(max(A[1], B[1], C[1]))
+    def glTriangle(self, transformed_verts,  u_verts, tex_coords, normals):
+        A = transformed_verts[0]
+        B = transformed_verts[1]
+        C = transformed_verts[2]
 
-        for x in range(minX, maxX + 1):
-            for y in range(minY, maxY + 1):
+        min_x = round(min(A[0], B[0], C[0]))
+        max_x = round(max(A[0], B[0], C[0]))
+        min_y = round(min(A[1], B[1], C[1]))
+        max_y = round(max(A[1], B[1], C[1]))
+
+        if self.active_normal_map is not None:
+            A_untransformed = u_verts[0]
+            B_untransformed = u_verts[1]
+            C_untransformed = u_verts[2]
+
+            edge1 = formatVector(B_untransformed) - formatVector(A_untransformed)
+            edge2 = formatVector(C_untransformed) - formatVector(A_untransformed)
+
+            delta_uv1 = formatVector(tex_coords[1]) - formatVector(tex_coords[0])
+            delta_uv2 = formatVector(tex_coords[2]) - formatVector(tex_coords[0])
+
+            delta = delta_uv1.data[0] * delta_uv2.data[1] - \
+                delta_uv2.data[0] * delta_uv1.data[1]
+            if delta == 0:
+                f = 0
+            else:
+                f = 1 / delta
+
+            tangent = formatVector([f * (delta_uv2.data[1] * edge1.data[0] - delta_uv1.data[1] * edge2.data[0]),
+                               f * (delta_uv2.data[1] * edge1.data[1] -
+                                    delta_uv1.data[1] * edge1.data[1]),
+                               f * (delta_uv2.data[1] * edge1.data[2] - delta_uv1.data[1] * edge2.data[2])])
+
+            tangent = tangent.normalize()
+        else:
+            tangent = None
+
+        for x in range(min_x, max_x + 1):
+            for y in range(min_y, max_y + 1):
                 if 0 <= x < self.width and 0 <= y < self.height:
                     P = (x, y)
-                    bCoords = barycentric_coords(A, B, C, P)
+                    b_coords = barycentric_coords(A, B, C, P)
 
-                    if bCoords is not None:
-                        u, v, w = bCoords
+                    if b_coords is not None:
+                        u, v, w = b_coords
                         z = u * A[2] + v * B[2] + w * C[2]
 
                         if z < self.zbuffer[x][y]:
                             self.zbuffer[x][y] = z
-                            # uvs = (u * vtA[0] + v * vtB[0] + w * vtC[0],
-                            #        u * vtA[1] + v * vtB[1] + w * vtC[1])
 
-                            if self.cartoonShader is not None:
-                                colorP = self.cartoonShader(
-                                    texture = self.activeTexture,
-                                    tex_coords=textCoords,
-                                    normals = normals,
-                                    # dLight = self.d 
-                                    bCoords=bCoords)
-                                
-                                self.glPoint(x, y, color(
-                                    colorP[0], colorP[1], colorP[2]))
+                            if self.fragment_shader is not None:
+
+                                colorP = self.fragment_shader(
+                                    texture=self.active_texture,
+                                    normal_map=self.active_normal_map,
+                                    tex_coords=tex_coords,
+                                    normals=normals,
+                                    directional_light=self.directional_light,
+                                    barycentric_coords=b_coords,
+                                    cam_matrix=self.camMatrix,
+                                    tangent=tangent)
+                                if colorP is not None:
+                                    self.glPoint(x, y, color(colorP[0], colorP[1], colorP[2]))
                             else:
                                 self.point(x, y)
 
-    def glPrimitiveAssembly(self, tVerts, tTexCoords, tNormals):
+    def primitive_assembly(self, t_verts, u_verts, t_tex_coords, normals):
         primitives = []
 
         if self.primitiveType == TRIANGLES:
-            for i in range(0, len(tVerts), 3):
-                verts = []
-                verts.append(tVerts[i])
-                verts.append(tVerts[i + 1])
-                verts.append(tVerts[i + 2])
-                # triangle = []
-                # triangle.append(tVerts[i])
-                # triangle.append(tVerts[i + 1])
-                # triangle.append(tVerts[i + 2])
-                textCoords = []
-                textCoords.append(tTexCoords[i])
-                textCoords.append(tTexCoords[i + 1])
-                textCoords.append(tTexCoords[i + 2])
+            for i in range(0, len(t_verts), 3):
+                triangle = []
+                c_verts = []
+                ux_verts = []
+                c_tex_coords = []
+                c_normals = []
 
-                normals = []
-                normals.append(tNormals[i])
-                normals.append(tNormals[i + 1])
-                normals.append(tNormals[i + 2])
+                for j in range(3):
+                    c_verts.append(t_verts[i + j])
+                for j in range(3):
+                    ux_verts.append(u_verts[i + j])
+                for j in range(3):
+                    c_tex_coords.append(t_tex_coords[i + j])
+                for j in range(3):
+                    c_normals.append(normals[i + j])
 
-                triangle = [verts, textCoords, normals]
-
+                triangle = [c_verts, ux_verts, c_tex_coords, c_normals]
                 primitives.append(triangle)
 
         return primitives
@@ -254,21 +288,29 @@ class Renderer:
 
                 limit += 1
 
-    def gl_load_model(self, filename, textureName, translate=(0, 0, 0), rotate=(0, 0, 0), scale=(1, 1, 1)):
-        model = Model(filename, translate, rotate, scale)
-        model.LoadTexture(textureName)
+    def glAddModel(self, model):
         self.objects.append(model)
 
     def glRender(self):
 
-        transformedVerts = []
-        texCoords = []
+        transformed_verts = []
+        tex_coords = []
         normals = []
 
         for model in self.objects:
+            print("Rendering model: " + model.filename)
+            transformed_verts = []
+            untransformed_verts = []
+            tex_coords = []
+            normals = []
 
-            self.activeTexture = model.texture
-            mMat = self.model_matrix(model.translate, model.rotate, model.scale)
+            self.vertex_shader = model.vertex_shader
+            self.fragment_shader = model.fragment_shader
+
+            self.active_texture = model.texture
+            self.active_normal_map = model.normal_map
+            model_matrix = self.model_matrix(
+                model.translate, model.rotate, model.scale)
 
             for face in model.faces:
                 vertCount = len(face)
@@ -279,63 +321,79 @@ class Renderer:
                 if vertCount == 4:
                     v3 = model.vertices[face[3][0] - 1]
 
-                if self.vertexShader:
-                    v0 = self.vertexShader(v0, model_matrix=mMat, view_matrix=self.view_matrix,
+                # first_triangle_normal = (
+                #     evector(v1) - evector(v0)).cross(evector(v2) - evector(v0))
+                # first_triangle_normal = first_triangle_normal.normalize()
+                # normals.append(first_triangle_normal)
+                # if vertCount == 4:
+                #     second_triangle_normal = (
+                #         evector(v2) - evector(v0)).cross(evector(v3) - evector(v0))
+                #     second_triangle_normal = second_triangle_normal.normalize()
+                #     normals.append(second_triangle_normal)
+                untransformed_verts.append(v0)
+                untransformed_verts.append(v1)
+                untransformed_verts.append(v2)
+                if vertCount == 4:
+                    untransformed_verts.append(v0)
+                    untransformed_verts.append(v2)
+                    untransformed_verts.append(v3)
+
+                if self.vertex_shader:
+                    v0 = self.vertex_shader(v0, model_matrix=model_matrix, view_matrix=self.view_matrix,
                                             projection_matrix=self.projectionMatrix, viewport_matrix=self.vpMatrix)
-                    v1 = self.vertexShader(v1, model_matrix=mMat, view_matrix=self.view_matrix,
+                    v1 = self.vertex_shader(v1, model_matrix=model_matrix, view_matrix=self.view_matrix,
                                             projection_matrix=self.projectionMatrix, viewport_matrix=self.vpMatrix)
-                    v2 = self.vertexShader(v2, model_matrix=mMat, view_matrix=self.view_matrix,
+                    v2 = self.vertex_shader(v2, model_matrix=model_matrix, view_matrix=self.view_matrix,
                                             projection_matrix=self.projectionMatrix, viewport_matrix=self.vpMatrix)
                     if vertCount == 4:
-                        v3 = self.vertexShader(v3, model_matrix=mMat, view_matrix=self.view_matrix,
+                        v3 = self.vertex_shader(v3, model_matrix=model_matrix, view_matrix=self.view_matrix,
                                                 projection_matrix=self.projectionMatrix, viewport_matrix=self.vpMatrix)
 
-                transformedVerts.append(v0)
-                transformedVerts.append(v1)
-                transformedVerts.append(v2)
+                transformed_verts.append(v0)
+                transformed_verts.append(v1)
+                transformed_verts.append(v2)
                 if vertCount == 4:
-                    transformedVerts.append(v0)
-                    transformedVerts.append(v2)
-                    transformedVerts.append(v3)
+                    transformed_verts.append(v0)
+                    transformed_verts.append(v2)
+                    transformed_verts.append(v3)
+                
+                # print(face[0][0])
 
-                vt0 = model.texcoords[face[0][1] - 1]
-                vt1 = model.texcoords[face[1][1] - 1]
-                vt2 = model.texcoords[face[2][1] - 1]
+                vt0 = model.tex_coords[face[0][1] - 1]
+                vt1 = model.tex_coords[face[1][1] - 1]
+                vt2 = model.tex_coords[face[2][1] - 1]
                 if vertCount == 4:
-                    vt3 = model.texcoords[face[3][1] - 1]
+                    vt3 = model.tex_coords[face[3][1] - 1]
 
-                texCoords.append(vt0)
-                texCoords.append(vt1)
-                texCoords.append(vt2)
+                tex_coords.append(vt0)
+                tex_coords.append(vt1)
+                tex_coords.append(vt2)
                 if vertCount == 4:
-                    texCoords.append(vt0)
-                    texCoords.append(vt2)
-                    texCoords.append(vt3)
+                    tex_coords.append(vt0)
+                    tex_coords.append(vt2)
+                    tex_coords.append(vt3)
 
-                v0 = model.normals[face[0][2] - 1]
-                v1 = model.normals[face[1][2] - 1]
-                v2 = model.normals[face[2][2] - 1]
-
+                vn0 = model.normals[face[0][2] - 1]
+                vn1 = model.normals[face[1][2] - 1]
+                vn2 = model.normals[face[2][2] - 1]
                 if vertCount == 4:
-                    v3 = model.normals[face[3][2] - 1]
+                    vn3 = model.normals[face[3][2] - 1]
 
-                normals.append(v0)
-                normals.append(v1)
-                normals.append(v2)
-
+                normals.append(vn0)
+                normals.append(vn1)
+                normals.append(vn2)
                 if vertCount == 4:
-                    normals.append(v0)
-                    normals.append(v2)
-                    normals.append(v3)
-                # v0 = model.normals[face[0][2] - 1]
-                # v1 = model.normals[face[1][2] - 1]
-                # v2 = model.normals[face[2][2] - 1]
+                    normals.append(vn0)
+                    normals.append(vn2)
+                    normals.append(vn3)
 
-        primitives = self.glPrimitiveAssembly(transformedVerts, texCoords, normals)
+            primitives = self.primitive_assembly(
+                transformed_verts, untransformed_verts, tex_coords, normals)
 
-        for prim in primitives:
-            if self.primitiveType == TRIANGLES:
-                self.glTriangle(prim[0], prim[1], prim[2])
+            for prim in primitives:
+                if self.primitiveType == TRIANGLES:
+                    self.glTriangle(prim[0], prim[1], prim[2], prim[3])
+
 
     def glFinish(self, filename):
         with open(filename, "wb") as file:

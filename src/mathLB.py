@@ -104,10 +104,27 @@ class Vector:
 
         self.data = data
 
-    def __mul__(self, newVector):
-        # Multiplica cada elemento del vector por un escalar
-        result = [elem * newVector for elem in self.data]
-        return Vector(result)
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __mul__(self, value):
+        # Si se multiplica por otro vector (producto punto)
+        if isinstance(value, Vector):
+            return sum(a * b for a, b in zip(self.data, value.data))
+        
+        # Si se multiplica por un escalar
+        elif isinstance(value, (int, float)):
+            return Vector([elem * value for elem in self.data])
+
+        else:
+            raise ValueError("Unsupported operand type for multiplication")
+        
+    # Para manejar el caso en que un escalar precede al vector
+    def __rmul__(self, value):
+        return self * value
 
     # permite utilizar el operador - para la clase vector
     def __sub__(self, newVector):
@@ -134,6 +151,22 @@ class Vector:
         ]
 
         return Vector(result)
+    
+    def dot(self, other) -> float:
+    #    producto punto
+        if len(self.data) != len(other.data):
+            raise ValueError(
+                "Dot product is only defined for vectors of the same dimension")
+
+        result = sum(self.data[i] * other.data[i]
+                     for i in range(len(self.data)))
+        return result
+    
+    def negate(self) -> 'Vector':
+        # negacion de un vector
+        result = [-elem for elem in self.data]
+        return Vector(result)
+
 
 def formatMatrix(data):
     

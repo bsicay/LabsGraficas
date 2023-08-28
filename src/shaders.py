@@ -1,7 +1,7 @@
 from .mathLB import formatVector
 import math
 
-def vertexShader(vertex, **kwargs):
+def vertex_shader(vertex, **kwargs):
     model_matrix = kwargs["model_matrix"]
     view_matrix = kwargs["view_matrix"]
     projection_matrix = kwargs["projection_matrix"]
@@ -15,7 +15,7 @@ def vertexShader(vertex, **kwargs):
     return vt.data[:3]
 
 
-def fragmentShader(**kwargs):
+def fragment_shader(**kwargs):
     tex_coords = kwargs["tex_coords"]
     texture = kwargs["texture"]
 
@@ -26,7 +26,6 @@ def fragmentShader(**kwargs):
 
     return color
 
-
 # carttonShader: 
 def cartoonShader(**kwargs):
     tex_coords = kwargs["tex_coords"]
@@ -36,9 +35,6 @@ def cartoonShader(**kwargs):
     space_size = 0.01  # Determina el espacio entre los puntos
 
     # Calcula si estamos en un punto o en un espacio
-    # print(tex_coords[0][0])
-    # print('a')
-    # print(tex_coords[0][1])
     if texture is not None:
         color = texture.get_color(tex_coords[0][0], tex_coords[0][1])
     else:
@@ -58,7 +54,8 @@ def wrinkledNoise(u, v):
 def wrinkledNoiseShader(**kwargs):
     tex_coords = kwargs["tex_coords"]
     texture = kwargs["texture"]
-
+    # print(tex_coords[0])
+    # print(tex_coords[1])
     noise = wrinkledNoise(tex_coords[0][0], tex_coords[0][1])
 
     if texture is not None:
@@ -68,6 +65,7 @@ def wrinkledNoiseShader(**kwargs):
         color = (1 * noise, 1 * noise, 1 * noise)
 
     return color
+
 
 def gradientShader(**kwargs):
     tex_coords = kwargs["tex_coords"]
@@ -83,3 +81,53 @@ def gradientShader(**kwargs):
     b = start_color[2] * (1 - tex_coords[0][1]) + end_color[2] * tex_coords[0][1]
 
     return (r, g, b)
+
+
+def phong_shader(**kwargs):
+    # Extracting values from kwargs
+    texture = kwargs["texture"]
+    tA, tB, tC = kwargs["tex_coords"]
+    nA, nB, nC = kwargs["normals"]
+    directional_light = kwargs["directional_light"]
+    u, v, w = kwargs["barycentric_coords"]
+    cam_matrix = kwargs["cam_matrix"]
+    
+    ambient_strength = 0.05
+    specular_strength = 0.01
+    shininess = 55
+
+    cam_forward = formatVector(
+        [cam_matrix.matx[0][2], cam_matrix.matx[1][2], cam_matrix.matx[2][2]])
+
+    # Calculate interpolated texture coordinates and normal
+    if texture is not None:
+        tU = u * tA[0] + v * tB[0] + w * tC[0]
+        tV = u * tA[1] + v * tB[1] + w * tC[1]
+        texture_color = texture.get_color(tU, tV)
+    else:
+        texture_color = (1, 1, 1)
+
+    normal = formatVector([
+        u * nA[0] + v * nB[0] + w * nC[0],
+        u * nA[1] + v * nB[1] + w * nC[1],
+        u * nA[2] + v * nB[2] + w * nC[2]
+    ])
+
+    # Ambient
+    ambient = tuple(i * ambient_strength for i in texture_color)
+
+    # Diffuse
+    light_dir = formatVector(directional_light)
+    diff = max(normal.dot(light_dir), 0)
+    diffuse = tuple(i * diff for i in texture_color)
+
+    # Specular
+    reflect = 2 * normal.dot(light_dir) * normal - light_dir
+    spec = pow(max(reflect.dot(cam_forward), 0), shininess)
+    specular = tuple(specular_strength * spec for _ in texture_color)
+
+    # Combine results to get final color
+    final_color = tuple(
+        min(1, max(0, a + d + s)) for a, d, s in zip(ambient, diffuse, specular)
+    )
+    return final_color
